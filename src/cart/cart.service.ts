@@ -11,13 +11,13 @@ export class CartService {
         try {
             for (let [round_id, value] of Object.entries(payload)) {
                 for (let [menu_id, quantity] of Object.entries(value)) {
-                    if (quantity == 0) {
-                        this.db.ref(`cart/${id}/${round_id}/${menu_id}`).set(null)
+                    if (menu_id != "shippingCost" && quantity == 0) {
+                        value[menu_id] = null
                         continue
                     }
-                    this.db.ref(`cart/${id}/${round_id}/${menu_id}`).set(quantity)
                 }
             }
+            this.db.ref(`cart/${id}`).set(payload)
             return {
                 message: 'success modify product in cart',
                 statusCode: 200
@@ -55,8 +55,10 @@ export class CartService {
                             box_price += (Object.keys(boxes).length - 1) * 5
                         let { menus, ...withoutmenus } = round
                         amount += value['shippingCost']
-                        response['items'].push({ round: withoutmenus, orders: modify_menu, boxes: boxes, 
-                            shippingCost: value['shippingCost'], note: value["note"],address:value["address"] })
+                        response['items'].push({
+                            round: withoutmenus, orders: modify_menu, boxes: boxes,
+                            shippingCost: value['shippingCost'], note: value["note"], address: value["address"]
+                        })
                     }
                     response['boxes_price'] = box_price
                     response['amount'] = amount + box_price

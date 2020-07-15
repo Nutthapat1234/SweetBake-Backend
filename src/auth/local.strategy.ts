@@ -17,12 +17,11 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(user_id: string, access_token: string): Promise<any> {
-    // todo test with real access_token
     let payload
     if (user_id == process.env.admin_user && access_token == process.env.admin_password)
       payload = { user_id: "admin", roles: 'admin' }
     else {
-      const json = request.get({
+      const json = await request.get({
         url: `https://api.line.me/oauth2/v2.1/verify?access_token=${access_token}`,
         json: true
       })

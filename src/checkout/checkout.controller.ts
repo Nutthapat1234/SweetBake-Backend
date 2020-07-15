@@ -5,9 +5,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/role.decorator';
 
-
-UseGuards(AuthGuard('jwt'),RolesGuard)
 @Controller('checkout')
+@UseGuards(AuthGuard('jwt'),RolesGuard)
 export class CheckoutController {
     constructor(private readonly checkOutService: CheckoutService) { }
 

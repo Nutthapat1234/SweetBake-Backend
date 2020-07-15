@@ -11,9 +11,9 @@ export class RoundService {
         try {
             var uid = Math.random().toString(36).substr(2, 9)
             info['menus'] = {
-                "0": { "menu_id": process.env.browines_id, "remaining": process.env.browines_limit },
-                "1": { "menu_id": process.env.cup_id, "remaining": process.env.cup_limit },
-                "2": { "menu_id": process.env.combo_id, "remaining": process.env.combo_limit }
+                "0": { "menu_id": process.env.browines_id, "remaining": info["brownies_limit"] },
+                "1": { "menu_id": process.env.cup_id, "remaining": info["cup_limit"] },
+                "2": { "menu_id": process.env.combo_id }
             }
             info["active"] = true
             this.db.ref(`round/${uid}`).set(info)
@@ -49,7 +49,7 @@ export class RoundService {
                 for (let [key, value] of Object.entries(data.val())) {
                     if (!value['active'])
                         continue
-                    result.push({ round_id: key, name: value["name"] })
+                    result.push({ round_id: key, name: value["name"] ,type: value["type"]})
                 }
                 return { rounds: result }
             }

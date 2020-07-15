@@ -8,7 +8,7 @@ import { RoundModule } from './round/round.module';
 import { CartModule } from './cart/cart.module';
 import { AuthModule } from './auth/auth.module';
 import { CheckoutModule } from './checkout/checkout.module';
-
+import * as admin from 'firebase-admin'
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -18,4 +18,18 @@ import { CheckoutModule } from './checkout/checkout.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule { 
+  constructor(){
+    if (!admin.apps.length) {
+      admin.initializeApp({
+          credential: admin.credential.cert({
+              clientEmail: process.env.client_email,
+              privateKey: process.env.private_key.replace(/\\n/g, '\n'),
+              projectId: process.env.project_id,
+          }),
+          databaseURL: process.env.database_url,
+          storageBucket: process.env.storage_bucket
+      })
+  }
+  }
+}

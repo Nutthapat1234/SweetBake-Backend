@@ -26,10 +26,22 @@ export class CheckoutService {
                         if (data == null)
                             return data
                         for (let order of item['orders']) {
-                            let remain = data['menus'].filter(element => { return element['menu_id'] == order['menu_id'] })[0]['remaining']
-                            if (order['quantity'] > remain) {
+                            if (order["menu_id"] == "9vqkg6f1l")
+                                var [condition, remain] = this.isRemain(data['menus'], ["7btee1m7i", "sorq6ezsm"], [2, 2])
+                            else
+                                var [condition, remain] = this.isRemain(data["menus"], [order["menu_id"]], [order["quantity"]])
+
+                            if (!condition) {
                                 error = true
-                                message += `${order['name']} not enough (remain: ${remain})\n`
+                                if (order["menu_id"] == "9vqkg6f1l") {
+                                    message += "For ComboSet:  "
+                                    if (remain.length > 1)
+                                        message += `Nutella Cup not enough (remain: ${remain[1]})\n`
+                                    else
+                                        message += `Nutella Brownie not enough (remain: ${remain[0]})\n`
+                                }
+                                else
+                                    message += `${order['name']} not enough (remain: ${remain})\n`
                             }
                         }
                         if (error) {
@@ -39,9 +51,12 @@ export class CheckoutService {
                             let sub_id = Math.random().toString(36).substr(2, 9)
                             let payload = []
                             for (let order of item['orders']) {
-                                let menu_obj = data['menus'].filter(element => { return element['menu_id'] == order['menu_id'] })[0]
-                                menu_obj['remaining'] -= order['quantity']
-                                payload.push(order)
+                                if (order["menu_id"] == "9vqkg6f1l")
+                                    this.reduceItem(data["menus"], ["7btee1m7i", "sorq6ezsm"], [2, 2])
+                                else
+                                    this.reduceItem(data["menus"], [order["menu_id"]], [order["quantity"]])
+                                let { remaining, ...withoutremaing } = order
+                                payload.push(withoutremaing)
                             }
                             this.db.ref(`checkout/toVerify/${order_id}/${sub_id}`).set({
                                 round: { round_id: round_id, name: data['name'] },
@@ -79,6 +94,29 @@ export class CheckoutService {
             throw new HttpException(e.response, e.status)
         }
 
+    }
+
+    isRemain(menus, menuList, quantityList): [boolean, Array<string>] {
+        let num = 0
+        let remainList = []
+        for (let menu_id of menuList) {
+            let remain = menus.filter(element => { return element['menu_id'] == menu_id })[0]['remaining']
+            remainList.push(remain)
+            if (quantityList[num] > remain) {
+                return [false, remainList]
+            }
+            num += 1
+        }
+        return [true, remainList]
+    }
+
+    reduceItem(menus, menuList, quantityList) {
+        let num = 0
+        for (let menu_id of menuList) {
+            let menu_obj = menus.filter(element => { return element['menu_id'] == menu_id })[0]
+            menu_obj['remaining'] -= quantityList[num]
+            num += 1
+        }
     }
 
     async uploadTransferSlip(id, order_id, image) {
@@ -191,10 +229,11 @@ export class CheckoutService {
         try {
             let orders = await this.db.ref(`checkout/toVerify/${order_id}`).once('value')
             if (orders.val() == null)
-                throw new HttpException(`No Order with id ${order_id}`,HttpStatus.BAD_REQUEST)
+                throw new HttpException(`No Order with id ${order_id}`, HttpStatus.BAD_REQUEST)
             let { amount, user_id, boxes_price, ...onlyOrder } = orders.val()
-            for (let order of Object.values(onlyOrder))
+            for (let order of Object.values(onlyOrder)) {
                 this.refundItem(order)
+            }
             this.db.ref(`checkout/reject/${order_id}`).set(orders.val())
             this.db.ref(`checkout/toVerify/${order_id}`).set(null)
             this.updateUsertoVerifyList(user_id, order_id)
@@ -212,10 +251,10 @@ export class CheckoutService {
         try {
             let orders = await this.db.ref(`checkout/toVerify/${order_id}`).once('value')
             if (orders.val() == null)
-                throw new HttpException(`No Order with id ${order_id}`,HttpStatus.BAD_REQUEST)
+                throw new HttpException(`No Order with id ${order_id}`, HttpStatus.BAD_REQUEST)
             let { amount, user_id, boxes_price, ...onlyOrder } = orders.val()
-            if( user_id != id)
-                throw new HttpException("Forbidden",HttpStatus.FORBIDDEN)
+            if (user_id != id)
+                throw new HttpException("Forbidden", HttpStatus.FORBIDDEN)
             for (let order of Object.values(onlyOrder))
                 this.refundItem(order)
             this.db.ref(`checkout/reject/${order_id}`).set(orders.val())
@@ -237,12 +276,24 @@ export class CheckoutService {
             if (data == null)
                 return data
             for (let item of Object.values(order["items"])) {
-                let selected = data["menus"].filter(e => { return e["menu_id"] == item["menu_id"] })[0]
-                selected["remaining"] += item['quantity']
+                if (item["menu_id"] == "9vqkg6f1l")
+                    this.refundHelper(data["menus"], ["7btee1m7i", "sorq6ezsm"], [2, 2])
+                else
+                    this.refundHelper(data["menus"], [item["meun_id"]], [item["quantity"]])
             }
             return data
         })
     }
+
+    refundHelper(menus, menuList, quantityList) {
+        let num = 0
+        for (let menu_id of menuList) {
+            let menu_obj = menus.filter(element => { return element['menu_id'] == menu_id })[0]
+            menu_obj['remaining'] += quantityList[num]
+            num += 1
+        }
+    }
+
 
     getOrdersforAdmin(verified = false) {
         let path = 'checkout/toVerify'
